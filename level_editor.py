@@ -1,4 +1,5 @@
 import bpy
+import bpy_extras
 
 def safe_print(*args, sep=" ", end="\n"):
     import sys
@@ -56,32 +57,67 @@ class MYADDON_OT_create_ico_sphere(bpy.types.Operator):
         return {'FINISHED'}
 
 # オペレータ シーン出力
-class MYADDON_OT_export_scene(bpy.types.Operator):
+class MYADDON_OT_export_scene(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
     bl_idname = "myaddon.myaddon_ot_export_scene"
     bl_label = "シーン出力"
     bl_description = "シーン情報をExportします"
 
+    # 出力するファイルの拡張子
+    filename_ext = ".scene"
+
+    def export(self, context):
+        """ファイルに出力"""
+        safe_print("シーン情報出力開始... %r" % self.filepath)
+        
+        with open(self.filepath, "wt", encoding="utf-8") as file:
+            file.write("SCENE\n")
+            
+            # ルートオブジェクト（親がないオブジェクト）を抽出
+            root_objects = [obj for obj in context.scene.objects if obj.parent is None]
+            
+            # 再帰的にオブジェクト情報を書き出すヘルパー関数
+            def write_object_recursive(obj, depth):
+                # インデントの計算
+                indent = " " * (depth * 4)
+                param_indent = " " * (depth * 4 + 2)
+                
+                # オブジェクト基本情報の出力
+                file.write(f"{indent}{obj.type} - {obj.name}\n")
+                
+                # 位置座標 (カンマ後のスペースなし)
+                file.write(f"{param_indent}Trans({obj.location.x:.6f},{obj.location.y:.6f},{obj.location.z:.6f})\n")
+                
+                # 回転角 (ラジアンから度数法へ変換、カンマ後のスペースなし)
+                import math
+                rot_x = math.degrees(obj.rotation_euler.x)
+                rot_y = math.degrees(obj.rotation_euler.y)
+                rot_z = math.degrees(obj.rotation_euler.z)
+                file.write(f"{param_indent}Rot({rot_x:.6f},{rot_y:.6f},{rot_z:.6f})\n")
+                
+                # スケール (カンマ後のスペースなし)
+                file.write(f"{param_indent}Scale({obj.scale.x:.6f},{obj.scale.y:.6f},{obj.scale.z:.6f})\n")
+                
+                # オブジェクトデータの後に空行を挿入
+                file.write("\n")
+                
+                # 直属の子オブジェクトを再帰的に出力
+                children = [child for child in context.scene.objects if child.parent == obj]
+                for child in children:
+                    write_object_recursive(child, depth + 1)
+            
+            # すべてのルートオブジェクトから再帰出力を開始
+            for obj in root_objects:
+                write_object_recursive(obj, 0)
+
     def execute(self, context):
-        import math
         safe_print("シーン情報をExportします")
-        for obj in context.scene.objects:
-            safe_print(f"{obj.type} - {obj.name}")
-            safe_print(f"Trans({obj.location.x:.6f}, {obj.location.y:.6f}, {obj.location.z:.6f})")
-            
-            # Convert rotation euler from radians to degrees
-            rot_x = math.degrees(obj.rotation_euler.x)
-            rot_y = math.degrees(obj.rotation_euler.y)
-            rot_z = math.degrees(obj.rotation_euler.z)
-            safe_print(f"Rot({rot_x:.6f}, {rot_y:.6f}, {rot_z:.6f})")
-            
-            safe_print(f"Scale({obj.scale.x:.6f}, {obj.scale.y:.6f}, {obj.scale.z:.6f})")
-            if obj.parent:
-                safe_print(f"Parent:{obj.parent.name}")
-            safe_print()
-            
+        
+        self.export(context)
+        
         safe_print("シーン情報をExportしました")
         self.report({'INFO'}, "シーン情報をExportしました")
         return {'FINISHED'}
+
 
 # サブメニューのクラス定義
 class TOPBAR_MT_my_menu(bpy.types.Menu):

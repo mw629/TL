@@ -65,49 +65,51 @@ class MYADDON_OT_export_scene(bpy.types.Operator, bpy_extras.io_utils.ExportHelp
     # 出力するファイルの拡張子
     filename_ext = ".scene"
 
+    def write_and_print(self, file, text):
+        file.write(text + "\n")
+        safe_print(text)
+
+    def parse_scene_recursive(self, file, object, level):
+        indent = " " * (level * 4)
+        
+        self.write_and_print(file, indent + object.type)
+        
+        trans = object.location
+        
+        import math
+        import mathutils
+        rot = mathutils.Vector((math.degrees(object.rotation_euler.x), math.degrees(object.rotation_euler.y), math.degrees(object.rotation_euler.z)))
+        
+        scale = object.scale
+        
+        # トランスフォーム情報を表示
+        self.write_and_print(file, indent + "T %f %f %f" % (trans.x, trans.y, trans.z))
+        self.write_and_print(file, indent + "R %f %f %f" % (rot.x, rot.y, rot.z))
+        self.write_and_print(file, indent + "S %f %f %f" % (scale.x, scale.y, scale.z))
+        # カスタムプロパティ'file_name'
+        if "file_name" in object:
+            self.write_and_print(file, indent + "N %s" % object["file_name"])
+        self.write_and_print(file, indent + 'END')
+        self.write_and_print(file, '')
+
+        # 子ノードへ進む（深さが1上がる）
+        for child in object.children:
+            self.parse_scene_recursive(file, child, level + 1)
+
     def export(self, context):
         """ファイルに出力"""
         safe_print("シーン情報出力開始... %r" % self.filepath)
         
         with open(self.filepath, "wt", encoding="utf-8") as file:
-            file.write("SCENE\n")
+            self.write_and_print(file, "SCENE")
+            self.write_and_print(file, "")
             
             # ルートオブジェクト（親がないオブジェクト）を抽出
             root_objects = [obj for obj in context.scene.objects if obj.parent is None]
             
-            # 再帰的にオブジェクト情報を書き出すヘルパー関数
-            def write_object_recursive(obj, depth):
-                # インデントの計算
-                indent = " " * (depth * 4)
-                param_indent = " " * (depth * 4 + 2)
-                
-                # オブジェクト基本情報の出力
-                file.write(f"{indent}{obj.type} - {obj.name}\n")
-                
-                # 位置座標 (カンマ後のスペースなし)
-                file.write(f"{param_indent}Trans({obj.location.x:.6f},{obj.location.y:.6f},{obj.location.z:.6f})\n")
-                
-                # 回転角 (ラジアンから度数法へ変換、カンマ後のスペースなし)
-                import math
-                rot_x = math.degrees(obj.rotation_euler.x)
-                rot_y = math.degrees(obj.rotation_euler.y)
-                rot_z = math.degrees(obj.rotation_euler.z)
-                file.write(f"{param_indent}Rot({rot_x:.6f},{rot_y:.6f},{rot_z:.6f})\n")
-                
-                # スケール (カンマ後のスペースなし)
-                file.write(f"{param_indent}Scale({obj.scale.x:.6f},{obj.scale.y:.6f},{obj.scale.z:.6f})\n")
-                
-                # オブジェクトデータの後に空行を挿入
-                file.write("\n")
-                
-                # 直属の子オブジェクトを再帰的に出力
-                children = [child for child in context.scene.objects if child.parent == obj]
-                for child in children:
-                    write_object_recursive(child, depth + 1)
-            
             # すべてのルートオブジェクトから再帰出力を開始
             for obj in root_objects:
-                write_object_recursive(obj, 0)
+                self.parse_scene_recursive(file, obj, 0)
 
     def execute(self, context):
         safe_print("シーン情報をExportします")
@@ -139,12 +141,47 @@ def draw_menu_manual(self, context):
     # トップバーに「MyMenu」という名前でサブメニューを追加
     self.layout.menu("TOPBAR_MT_my_menu", text="MyMenu")
 
-# 登録対象のクラス
+# オペレータ カスタムプロパティ['file_name']追加
+class MYADDON_OT_add_filename(bpy.types.Operator):
+    bl_idname = "myaddon.myaddon_ot_add_filename"
+    bl_label = "FileName 追加"
+    bl_description = "['file_name']カスタムプロパティを追加します"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        # ['file_name']カスタムプロパティを追加
+        context.object["file_name"] = ""
+        return {'FINISHED'}
+
+
+# パネル ファイル名
+class OBJECT_PT_file_name(bpy.types.Panel):
+    """オブジェクトのファイルネームパネル"""
+    bl_idname = "OBJECT_PT_file_name"
+    bl_label = "FileName"
+    bl_space_type = "PROPERTIES"
+    bl_region_type = "WINDOW"
+    bl_context = "object"
+
+    # サブメニューの描画
+    def draw(self, context):
+        # パネルに項目を追加
+        if "file_name" in context.object:
+            # 既にプロパティがあれば、プロパティを表示
+            self.layout.prop(context.object, '["file_name"]', text=self.bl_label)
+        else:
+            # プロパティがなければ、プロパティ追加ボタンを表示
+            self.layout.operator(MYADDON_OT_add_filename.bl_idname)
+
+
+# Blenderに登録するクラスリスト
 classes = (
     MYADDON_OT_stretch_vertex,
     MYADDON_OT_create_ico_sphere,
     MYADDON_OT_export_scene,
     TOPBAR_MT_my_menu,
+    MYADDON_OT_add_filename,
+    OBJECT_PT_file_name,
 )
 
 # アドオン有効化時の処理

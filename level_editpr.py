@@ -1,42 +1,29 @@
 import bpy
+import sys
+import os
+import importlib.util
 
-bl_info = {
-    "name": "MyMenu",
-    "author": "Taro Kamata",
-    "version": (1, 0),
-    "blender": (4, 4, 0),
-    "location": "トップバー > MyMenu",
-    "description": "拡張メニュー by Taro Kamata.",
-    "category": "Development",
-}
+# TLフォルダの絶対パスを取得
+addon_dir = r"c:\Program Files\Blender Foundation\Blender 4.4\4.4\scripts\addons_core\TL"
+level_editor_dir = os.path.join(addon_dir, "level_editor")
 
-# サブメニューのクラス定義
-class TOPBAR_MT_my_menu(bpy.types.Menu):
-    bl_label = "MyMenu"
-    bl_idname = "TOPBAR_MT_my_menu"
+for p in [addon_dir, level_editor_dir]:
+    if p not in sys.path:
+        sys.path.insert(0, p)
 
-    def draw(self, context):
-        layout = self.layout
-        # 画像の通り「マニュアル」のみを表示
-        layout.operator("wm.url_open", text="マニュアル", icon='HELP').url = "https://docs.blender.org/"
+# level_editor/__init__.py から直接登録処理を実行
+init_path = os.path.join(level_editor_dir, "__init__.py")
 
-# メニューを描画する関数
-def draw_menu_manual(self, context):
-    # トップバーに「MyMenu」という名前でサブメニューを追加
-    self.layout.menu("TOPBAR_MT_my_menu", text="MyMenu")
+spec = importlib.util.spec_from_file_location("level_editor", init_path)
+level_editor_module = importlib.util.module_from_spec(spec)
+sys.modules["level_editor"] = level_editor_module
+spec.loader.exec_module(level_editor_module)
 
-# アドオン有効化時の処理
 def register():
-    bpy.utils.register_class(TOPBAR_MT_my_menu)
-    bpy.types.TOPBAR_MT_editor_menus.append(draw_menu_manual)
-    print("MyMenuアドオンが有効化されました。")
+    level_editor_module.register()
 
-# アドオン無効化時の処理
 def unregister():
-    bpy.types.TOPBAR_MT_editor_menus.remove(draw_menu_manual)
-    bpy.utils.unregister_class(TOPBAR_MT_my_menu)
-    print("MyMenuアドオンが無効化されました。")
+    level_editor_module.unregister()
 
-# テスト実行用
 if __name__ == "__main__":
     register()

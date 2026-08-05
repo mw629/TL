@@ -21,6 +21,7 @@ try:
     from .my_menu import TOPBAR_MT_my_menu
     from .add_filename import MYADDON_OT_add_filename, OBJECT_PT_file_name
     from .add_collider import MYADDON_OT_add_collider, OBJECT_PT_collider
+    from .disabled import MYADDON_OT_add_disabled, OBJECT_PT_disabled
 except ImportError:
     from stretch_vertex import MYADDON_OT_stretch_vertex
     from create_ico_sphere import MYADDON_OT_create_ico_sphere
@@ -29,6 +30,7 @@ except ImportError:
     from my_menu import TOPBAR_MT_my_menu
     from add_filename import MYADDON_OT_add_filename, OBJECT_PT_file_name
     from add_collider import MYADDON_OT_add_collider, OBJECT_PT_collider
+    from disabled import MYADDON_OT_add_disabled, OBJECT_PT_disabled
 
 # アドオン情報
 bl_info = {
@@ -56,6 +58,8 @@ classes = (
     OBJECT_PT_file_name,
     MYADDON_OT_add_collider,
     OBJECT_PT_collider,
+    MYADDON_OT_add_disabled,
+    OBJECT_PT_disabled,
 )
 
 # アドオン有効化時の処理

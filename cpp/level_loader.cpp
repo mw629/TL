@@ -18,6 +18,14 @@ static void ParseObjectRecursive(const nlohmann::json& objectJson, LevelData* le
     // すべてのオブジェクトで "type" を含むかチェック (スライド3, 6ページ)
     assert(objectJson.contains("type"));
     
+    // 有効無効フラグ (disabled) が検出された場合、True なら配置をスキップ
+    if (objectJson.contains("disabled")) {
+        bool disabled = objectJson["disabled"].get<bool>();
+        if (disabled) {
+            return;
+        }
+    }
+
     // 種別を取得
     std::string type = objectJson["type"].get<std::string>();
 

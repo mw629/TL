@@ -30,6 +30,10 @@ class MYADDON_OT_export_scene(bpy.types.Operator, bpy_extras.io_utils.ExportHelp
         if "file_name" in obj:
             object_data["file_name"] = obj["file_name"]
 
+        # カスタムプロパティ 'disabled' があれば出力データに追加
+        if "disabled" in obj:
+            object_data["disabled"] = obj["disabled"]
+
         # トランスフォーム情報 (位置, 回転, スケール)
         trans = obj.location
         rot = [

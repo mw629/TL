@@ -22,7 +22,12 @@ try:
     from .add_filename import MYADDON_OT_add_filename, OBJECT_PT_file_name
     from .add_collider import MYADDON_OT_add_collider, OBJECT_PT_collider
     from .disabled import MYADDON_OT_add_disabled, OBJECT_PT_disabled
-    from .spawn import MYADDON_OT_spawn_import_symbol, MYADDON_OT_spawn_create_symbol
+    from .spawn import (
+        MYADDON_OT_spawn_import_symbol,
+        MYADDON_OT_spawn_create_symbol,
+        MYADDON_OT_spawn_create_player_symbol,
+        MYADDON_OT_spawn_create_enemy_symbol,
+    )
 except ImportError:
     from stretch_vertex import MYADDON_OT_stretch_vertex
     from create_ico_sphere import MYADDON_OT_create_ico_sphere
@@ -32,7 +37,12 @@ except ImportError:
     from add_filename import MYADDON_OT_add_filename, OBJECT_PT_file_name
     from add_collider import MYADDON_OT_add_collider, OBJECT_PT_collider
     from disabled import MYADDON_OT_add_disabled, OBJECT_PT_disabled
-    from spawn import MYADDON_OT_spawn_import_symbol, MYADDON_OT_spawn_create_symbol
+    from spawn import (
+        MYADDON_OT_spawn_import_symbol,
+        MYADDON_OT_spawn_create_symbol,
+        MYADDON_OT_spawn_create_player_symbol,
+        MYADDON_OT_spawn_create_enemy_symbol,
+    )
 
 # アドオン情報
 bl_info = {
@@ -64,6 +74,8 @@ classes = (
     OBJECT_PT_disabled,
     MYADDON_OT_spawn_import_symbol,
     MYADDON_OT_spawn_create_symbol,
+    MYADDON_OT_spawn_create_player_symbol,
+    MYADDON_OT_spawn_create_enemy_symbol,
 )
 
 # アドオン有効化時の処理

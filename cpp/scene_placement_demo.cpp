@@ -47,7 +47,7 @@ void SetupDummyModels() {
     models["stage"] = new Model{"stage"};
 }
 
-// レベルデータからオブジェクトを生成、配置するメイン関数 (スライド7ページ)
+// レベルデータからオブジェクトを生成、配置するメイン関数 (スライド7ページ, 敵キャラの発生処理)
 void PlaceObjectsFromLevel(TL::LevelData* levelData) {
     // レベルデータからオブジェクトを生成、配置
     for (auto& objectData : levelData->objects) {
@@ -91,6 +91,35 @@ void PlaceObjectsFromLevel(TL::LevelData* levelData) {
         std::cout << "Placed Player from PlayerSpawnData: Translation=(" 
                   << playerData.translation.x << ", " << playerData.translation.y << ", " << playerData.translation.z << ")"
                   << " Rotation=(" << playerData.rotation.x << ", " << playerData.rotation.y << ", " << playerData.rotation.z << " rad)"
+                  << std::endl;
+    }
+
+    // レベルデータから敵を生成、配置 (スライド "敵キャラの発生処理" 要件)
+    for (auto& enemyData : levelData->enemies) {
+        // 敵の生成
+        Model* enemyModel = nullptr;
+        if (!enemyData.fileName.empty()) {
+            decltype(models)::iterator it = models.find(enemyData.fileName);
+            if (it != models.end()) {
+                enemyModel = it->second;
+            }
+        }
+        if (enemyModel == nullptr) {
+            enemyModel = models["enemy"];
+        }
+
+        Object3d* enemyObj = Object3d::Create(enemyModel);
+
+        // 敵の初期化
+        enemyObj->SetPosition(enemyData.translation);
+        enemyObj->SetRotation(enemyData.rotation);
+
+        // 敵リスト（objects）に追加
+        objects.push_back(enemyObj);
+
+        std::cout << "Placed Enemy from EnemySpawnData: File=" << enemyData.fileName 
+                  << ", Pos=(" << enemyData.translation.x << ", " << enemyData.translation.y << ", " << enemyData.translation.z << ")"
+                  << ", Rot=(" << enemyData.rotation.x << ", " << enemyData.rotation.y << ", " << enemyData.rotation.z << " rad)"
                   << std::endl;
     }
 }

@@ -20,6 +20,16 @@ struct PlayerSpawnData {
     Vector3 rotation;
 };
 
+// 敵キャラの生成データ (スライド "オブジェクトの走査" 要件)
+struct EnemySpawnData {
+    // 平行移動
+    Vector3 translation;
+    // 回転角
+    Vector3 rotation;
+    // リソースファイル名
+    std::string fileName = "";
+};
+
 // コライダーデータ構造体 (スライド4, 10ページの要件を統合)
 struct ColliderData {
     std::string type = "";
@@ -49,6 +59,9 @@ struct LevelData {
 
     // 自キャラ配列 (スライド3ページ)
     std::vector<PlayerSpawnData> players;
+
+    // 敵キャラ配列 (スライド "オブジェクトの走査" 要件)
+    std::vector<EnemySpawnData> enemies;
 };
 
 } // namespace TL

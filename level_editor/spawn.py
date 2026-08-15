@@ -1,6 +1,18 @@
+import os
 import bpy
 import bpy_extras.io_utils
-import os
+
+
+class SpawnNames:
+    # インデックス
+    PROTOTYPE = 0  # プロトタイプのオブジェクト名
+    INSTANCE = 1  # 量産時のオブジェクト名
+    FILENAME = 2  # リソースファイル名
+
+    names = {}
+    # names["キー"] = (プロトタイプのオブジェクト名, 量産時のオブジェクト名, リソースファイル名)
+    names["Enemy"] = ("PrototypeEnemySpawn", "EnemySpawn", "needle/needle.obj")
+    names["Player"] = ("PrototypePlayerSpawn", "PlayerSpawn", "player/player.obj")
 
 
 # オペレータ 出現ポイントのシンボルを読み込む
@@ -20,26 +32,18 @@ class MYADDON_OT_spawn_import_symbol(
         maxlen=255,
     )
 
-    prototype_object_name = "PrototypePlayerSpawn"
-    object_name = "PlayerSpawn"
-
-    def execute(self, context):
-        print(f"出現ポイントのシンボルをImportします: {self.filepath}")
-
+    def load_obj(self, type):
         # 重複ロード防止
         spawn_object = bpy.data.objects.get(
-            MYADDON_OT_spawn_import_symbol.prototype_object_name
+            SpawnNames.names[type][SpawnNames.PROTOTYPE]
         )
         if spawn_object is not None:
-            self.report({'INFO'}, "プロトタイプオブジェクトは既に読み込まれています")
             return {'CANCELLED'}
 
-        # filepathが未設定（プログラムからの呼び出し時）の場合、デフォルトパスを使用
-        if not self.filepath:
-            addon_directory = os.path.dirname(__file__)
-            self.filepath = os.path.join(addon_directory, "player", "player.obj")
-
-        full_path = self.filepath
+        # リソースファイルのフルパスを構築
+        addon_directory = os.path.dirname(__file__)
+        rel_path = SpawnNames.names[type][SpawnNames.FILENAME]
+        full_path = os.path.join(addon_directory, *rel_path.split("/"))
 
         if not os.path.exists(full_path):
             self.report({'ERROR'}, f"モデルファイルが見つかりません: {full_path}")
@@ -67,13 +71,21 @@ class MYADDON_OT_spawn_import_symbol(
         object = bpy.context.active_object
 
         # オブジェクト名を変更
-        object.name = MYADDON_OT_spawn_import_symbol.prototype_object_name
+        object.name = SpawnNames.names[type][SpawnNames.PROTOTYPE]
 
         # オブジェクトの種類を設定
-        object["type"] = MYADDON_OT_spawn_import_symbol.object_name
+        object["type"] = SpawnNames.names[type][SpawnNames.INSTANCE]
 
         # メモリ上にはおいておくがシーンから外す
         bpy.context.collection.objects.unlink(object)
+
+        return {'FINISHED'}
+
+    def execute(self, context):
+        # Enemyオブジェクト読み込み
+        self.load_obj("Enemy")
+        # Playerオブジェクト読み込み
+        self.load_obj("Player")
 
         return {'FINISHED'}
 
@@ -85,12 +97,13 @@ class MYADDON_OT_spawn_create_symbol(bpy.types.Operator):
     bl_description = "出現ポイントのシンボルを作成します"
     bl_options = {'REGISTER', 'UNDO'}
 
-    object_name = "PlayerSpawn"
+    # プロパティ (引数として渡せる)
+    type: bpy.props.StringProperty(name="Type", default="Player")
 
     def execute(self, context):
         # 読み込み済みのコピー元オブジェクトを検索
         spawn_object = bpy.data.objects.get(
-            MYADDON_OT_spawn_import_symbol.prototype_object_name
+            SpawnNames.names[self.type][SpawnNames.PROTOTYPE]
         )
 
         # まだ読み込んでいない場合
@@ -99,7 +112,7 @@ class MYADDON_OT_spawn_create_symbol(bpy.types.Operator):
             bpy.ops.myaddon.spawn_import_symbol('EXEC_DEFAULT')
             # 再検索。今度は見つかるはず
             spawn_object = bpy.data.objects.get(
-                MYADDON_OT_spawn_import_symbol.prototype_object_name
+                SpawnNames.names[self.type][SpawnNames.PROTOTYPE]
             )
 
         if spawn_object is None:
@@ -118,6 +131,28 @@ class MYADDON_OT_spawn_create_symbol(bpy.types.Operator):
         bpy.context.collection.objects.link(object)
 
         # オブジェクト名を変更
-        object.name = MYADDON_OT_spawn_create_symbol.object_name
+        object.name = SpawnNames.names[self.type][SpawnNames.INSTANCE]
 
+        return {'FINISHED'}
+
+
+# 自キャラ専用出現ポイントシンボル作成オペレータ
+class MYADDON_OT_spawn_create_player_symbol(bpy.types.Operator):
+    bl_idname = "myaddon.spawn_create_player_symbol"
+    bl_label = "プレイヤー出現ポイントシンボルの作成"
+    bl_description = "プレイヤー出現ポイントのシンボルを作成します"
+
+    def execute(self, context):
+        bpy.ops.myaddon.spawn_create_symbol('EXEC_DEFAULT', type="Player")
+        return {'FINISHED'}
+
+
+# 敵専用出現ポイントシンボル作成オペレータ
+class MYADDON_OT_spawn_create_enemy_symbol(bpy.types.Operator):
+    bl_idname = "myaddon.spawn_create_enemy_symbol"
+    bl_label = "敵出現ポイントシンボルの作成"
+    bl_description = "敵出現ポイントのシンボルを作成します"
+
+    def execute(self, context):
+        bpy.ops.myaddon.spawn_create_symbol('EXEC_DEFAULT', type="Enemy")
         return {'FINISHED'}

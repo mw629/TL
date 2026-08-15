@@ -98,6 +98,31 @@ static void ParseObjectRecursive(const nlohmann::json& objectJson, LevelData* le
             playerData.rotation.z = (float)transform["rotation"][1] * kDegreeToRadian;
         }
     }
+    // 敵キャラ発生ポイント (スライド "オブジェクトの走査" 要件)
+    else if (type.compare("EnemySpawn") == 0) {
+        levelData->enemies.emplace_back(EnemySpawnData{});
+        EnemySpawnData& enemyData = levelData->enemies.back();
+
+        if (objectJson.contains("transform")) {
+            const nlohmann::json& transform = objectJson["transform"];
+
+            // 平行移動の数値を書き込む
+            enemyData.translation.x = (float)transform["translation"][0];
+            enemyData.translation.y = (float)transform["translation"][2];
+            enemyData.translation.z = (float)transform["translation"][1];
+
+            // 回転角の数値をラジアンで書き込む
+            constexpr float kDegreeToRadian = 3.14159265358979323846f / 180.0f;
+            enemyData.rotation.x = (float)transform["rotation"][0] * kDegreeToRadian;
+            enemyData.rotation.y = (float)transform["rotation"][2] * kDegreeToRadian;
+            enemyData.rotation.z = (float)transform["rotation"][1] * kDegreeToRadian;
+        }
+
+        // file_nameがあれば書き込む
+        if (objectJson.contains("file_name")) {
+            enemyData.fileName = objectJson["file_name"].get<std::string>();
+        }
+    }
     else {
         // その他のオブジェクトタイプを全オブジェクトリストに追加
         levelData->objects.emplace_back(LevelData::ObjectData{});

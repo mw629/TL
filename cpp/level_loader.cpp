@@ -30,54 +30,94 @@ static void ParseObjectRecursive(const nlohmann::json& objectJson, LevelData* le
     std::string type = objectJson["type"].get<std::string>();
 
     // MESHである場合の処理 (スライド4ページ)
-    // ※スライド注記: 「本当はMESHを含めた全オブジェクトを追加するべき」に従い、MESH以外（EMPTYやCAMERA等）もオブジェクトとして追加します。
-    levelData->objects.emplace_back(LevelData::ObjectData{});
-    LevelData::ObjectData& objectData = levelData->objects.back();
-    
-    objectData.type = type;
-    if (objectJson.contains("name")) {
-        objectData.name = objectJson["name"].get<std::string>();
-    }
+    if (type.compare("MESH") == 0) {
+        levelData->objects.emplace_back(LevelData::ObjectData{});
+        LevelData::ObjectData& objectData = levelData->objects.back();
+        
+        objectData.type = type;
+        if (objectJson.contains("name")) {
+            objectData.name = objectJson["name"].get<std::string>();
+        }
 
-    if (type == "MESH") {
         if (objectJson.contains("file_name")) {
             objectData.fileName = objectJson["file_name"].get<std::string>();
         }
+
+        // トランスフォームのパラメータ読み込み (スライド5ページ)
+        if (objectJson.contains("transform")) {
+            const nlohmann::json& transform = objectJson["transform"];
+            
+            // 平行移動 (BlenderのZ-upからゲーム座標系(Y/Z入れ替え)への変換)
+            objectData.translation.x = (float)transform["translation"][0];
+            objectData.translation.y = (float)transform["translation"][2];
+            objectData.translation.z = (float)transform["translation"][1];
+
+            // 回転角 (BlenderのZ-upからゲーム座標系への変換 + 符号反転)
+            objectData.rotation.x = -(float)transform["rotation"][0];
+            objectData.rotation.y = -(float)transform["rotation"][2];
+            objectData.rotation.z = -(float)transform["rotation"][1];
+
+            // スケーリング
+            objectData.scaling.x = (float)transform["scaling"][0];
+            objectData.scaling.y = (float)transform["scaling"][2];
+            objectData.scaling.z = (float)transform["scaling"][1];
+        }
+
+        // コライダーのパラメータ読み込み (スライド4ページ TODO, スライド10ページ)
+        if (objectJson.contains("collider")) {
+            const nlohmann::json& colliderJson = objectJson["collider"];
+            objectData.collider.hasCollider = true;
+            objectData.collider.type = colliderJson["type"].get<std::string>();
+            
+            objectData.collider.center.x = (float)colliderJson["center"][0];
+            objectData.collider.center.y = (float)colliderJson["center"][1];
+            objectData.collider.center.z = (float)colliderJson["center"][2];
+
+            objectData.collider.size.x = (float)colliderJson["size"][0];
+            objectData.collider.size.y = (float)colliderJson["size"][1];
+            objectData.collider.size.z = (float)colliderJson["size"][2];
+        }
     }
+    // 自キャラ発生ポイント (スライド "オブジェクトの走査" 要件)
+    else if (type.compare("PlayerSpawn") == 0) {
+        levelData->players.emplace_back(PlayerSpawnData{});
+        PlayerSpawnData& playerData = levelData->players.back();
 
-    // トランスフォームのパラメータ読み込み (スライド5ページ)
-    if (objectJson.contains("transform")) {
-        const nlohmann::json& transform = objectJson["transform"];
-        
-        // 平行移動 (BlenderのZ-upからゲーム座標系(Y/Z入れ替え)への変換)
-        objectData.translation.x = (float)transform["translation"][0];
-        objectData.translation.y = (float)transform["translation"][2];
-        objectData.translation.z = (float)transform["translation"][1];
+        if (objectJson.contains("transform")) {
+            const nlohmann::json& transform = objectJson["transform"];
 
-        // 回転角 (BlenderのZ-upからゲーム座標系への変換 + 符号反転)
-        objectData.rotation.x = -(float)transform["rotation"][0];
-        objectData.rotation.y = -(float)transform["rotation"][2];
-        objectData.rotation.z = -(float)transform["rotation"][1];
+            // 平行移動の数値を書き込む (Y/Z軸入れ替え)
+            playerData.translation.x = (float)transform["translation"][0];
+            playerData.translation.y = (float)transform["translation"][2];
+            playerData.translation.z = (float)transform["translation"][1];
 
-        // スケーリング
-        objectData.scaling.x = (float)transform["scaling"][0];
-        objectData.scaling.y = (float)transform["scaling"][2];
-        objectData.scaling.z = (float)transform["scaling"][1];
+            // 回転角の数値をラジアンで書き込む
+            constexpr float kDegreeToRadian = 3.14159265358979323846f / 180.0f;
+            playerData.rotation.x = (float)transform["rotation"][0] * kDegreeToRadian;
+            playerData.rotation.y = (float)transform["rotation"][2] * kDegreeToRadian;
+            playerData.rotation.z = (float)transform["rotation"][1] * kDegreeToRadian;
+        }
     }
-
-    // コライダーのパラメータ読み込み (スライド4ページ TODO, スライド10ページ)
-    if (objectJson.contains("collider")) {
-        const nlohmann::json& colliderJson = objectJson["collider"];
-        objectData.collider.hasCollider = true;
-        objectData.collider.type = colliderJson["type"].get<std::string>();
-        
-        objectData.collider.center.x = (float)colliderJson["center"][0];
-        objectData.collider.center.y = (float)colliderJson["center"][1];
-        objectData.collider.center.z = (float)colliderJson["center"][2];
-
-        objectData.collider.size.x = (float)colliderJson["size"][0];
-        objectData.collider.size.y = (float)colliderJson["size"][1];
-        objectData.collider.size.z = (float)colliderJson["size"][2];
+    else {
+        // その他のオブジェクトタイプを全オブジェクトリストに追加
+        levelData->objects.emplace_back(LevelData::ObjectData{});
+        LevelData::ObjectData& objectData = levelData->objects.back();
+        objectData.type = type;
+        if (objectJson.contains("name")) {
+            objectData.name = objectJson["name"].get<std::string>();
+        }
+        if (objectJson.contains("transform")) {
+            const nlohmann::json& transform = objectJson["transform"];
+            objectData.translation.x = (float)transform["translation"][0];
+            objectData.translation.y = (float)transform["translation"][2];
+            objectData.translation.z = (float)transform["translation"][1];
+            objectData.rotation.x = -(float)transform["rotation"][0];
+            objectData.rotation.y = -(float)transform["rotation"][2];
+            objectData.rotation.z = -(float)transform["rotation"][1];
+            objectData.scaling.x = (float)transform["scaling"][0];
+            objectData.scaling.y = (float)transform["scaling"][2];
+            objectData.scaling.z = (float)transform["scaling"][1];
+        }
     }
 
     // TODO: オブジェクト走査を再帰関数にまとめ、再帰呼出で枝を走査する (スライド6ページ)

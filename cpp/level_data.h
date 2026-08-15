@@ -12,6 +12,14 @@ struct Vector3 {
     float z = 0.0f;
 };
 
+// 自キャラの生成データ (スライド3ページ)
+struct PlayerSpawnData {
+    // 平行移動
+    Vector3 translation;
+    // 回転角
+    Vector3 rotation;
+};
+
 // コライダーデータ構造体 (スライド4, 10ページの要件を統合)
 struct ColliderData {
     std::string type = "";
@@ -38,6 +46,9 @@ struct LevelData {
 
     // シーン全体のオブジェクトリスト
     std::vector<ObjectData> objects;
+
+    // 自キャラ配列 (スライド3ページ)
+    std::vector<PlayerSpawnData> players;
 };
 
 } // namespace TL

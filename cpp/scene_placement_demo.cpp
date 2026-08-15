@@ -84,6 +84,15 @@ void PlaceObjectsFromLevel(TL::LevelData* levelData) {
                       << std::endl;
         }
     }
+
+    // 自キャラ配置データからの反映 (スライド5 "自キャラに座標を反映" 要件)
+    if (!levelData->players.empty()) {
+        auto& playerData = levelData->players[0];
+        std::cout << "Placed Player from PlayerSpawnData: Translation=(" 
+                  << playerData.translation.x << ", " << playerData.translation.y << ", " << playerData.translation.z << ")"
+                  << " Rotation=(" << playerData.rotation.x << ", " << playerData.rotation.y << ", " << playerData.rotation.z << " rad)"
+                  << std::endl;
+    }
 }
 
 int main() {

@@ -21,9 +21,15 @@ class MYADDON_OT_export_scene(bpy.types.Operator, bpy_extras.io_utils.ExportHelp
 
     def parse_object_recursive(self, obj):
         """オブジェクトとその子要素を再帰的にJSON辞書構造へ変換"""
+        # オブジェクト種類 (カスタムプロパティで指定された場合を優先)
+        if "type" in obj:
+            object_type = obj["type"]
+        else:
+            object_type = obj.type
+
         object_data = {
             "name": obj.name,
-            "type": obj.type
+            "type": object_type
         }
 
         # カスタムプロパティ 'file_name' があれば出力データに追加
